@@ -155,6 +155,85 @@ int in_S(int *S, int length, int id) {
     }
 }
 
+void dijkstra(struct linked_list *head, int source, int num_nodes, int *S, int *D, int *P) {
+    struct linked_list *current, *prev;
+    current = head;
+    while (current != NULL) {
+        /*
+        for (int i = 0; i < current->numNeighbors; i++) {
+            printf("%i->%i = %i\n", current->id, current->connectedTo[i], current->weights[i]);
+        }
+        */
+        current = current->next;
+    }
+
+    int num_S = 1; // for the source node
+    S[0] = source; // S={u}
+
+    current = getNode_nodeList(head, source);
+    if (current == NULL || current->id != source) {
+        printf("No source node found.\n");
+        return ;
+    }
+
+    for (int i = 0; i < current->numNeighbors; i++) {
+        D[current->connectedTo[i] - 1] = current->weights[i];
+        P[current->connectedTo[i] - 1] = source;
+    }
+    /*
+    printf("set initial adjacent weights\n");
+    printf("\nD: ");
+    for (int i = 0; i < num_nodes; i++) {
+        printf("%d  ", D[i]);
+    }
+    printf("\n");
+    */
+
+    while (num_S < num_nodes) {
+        int minIndex = -1;
+        for (int i = 0; i < num_nodes; i++) {
+            if (in_S(S, num_nodes, i + 1) == 1) continue;
+
+            if (D[i] > 0 && minIndex == -1)
+                minIndex = i;
+            else if (D[i] > 0 && D[i] < D[minIndex])
+                minIndex = i;
+        }
+        S[num_S++] = minIndex + 1;
+        current = getNode_nodeList(head, minIndex + 1);
+        //update
+        for (int i = 0; i < current->numNeighbors; i++) {
+
+            if (in_S(S, num_nodes, current->connectedTo[i]) == 1) continue;
+            // not in S
+            //printf("old=%i, new=%i\n", D[current->connectedTo[i] - 1], D[(current->id) - 1] + current->weights[i]);
+            if (D[current->connectedTo[i] - 1] == 0) {
+                D[current->connectedTo[i] - 1] = D[(current->id) - 1] + current->weights[i];
+                P[current->connectedTo[i] - 1] = current->id;
+            }
+            else {
+                if (D[current->connectedTo[i] - 1] > D[(current->id) - 1] + current->weights[i]) {
+                    D[current->connectedTo[i] - 1] = D[(current->id) - 1] + current->weights[i];
+                    P[current->connectedTo[i] - 1] = current->id;
+                }
+            }
+            //printf("updating D[%i]=%i, P[%i]=%i\n", current->connectedTo[i] - 1, D[current->connectedTo[i] - 1], current->connectedTo[i]-1, P[current->connectedTo[i]-1]);
+        }
+
+        //D[minIndex] = 0;
+    }
+}
+
+int isAdjacent_nodeList(struct linked_list *head, int node, int target) {
+    struct linked_list *current = getNode_nodeList(head, node);
+    for (int i = 0; i < current->numNeighbors; i++) {
+        if (current->connectedTo[i] == target) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int main(int argc, char* argv[])
 {
     struct linked_list *head;
@@ -201,120 +280,43 @@ int main(int argc, char* argv[])
     }
     printf("Source: %i\tDest:%i\n", source, dest);
 
-    struct linked_list *current, *prev;
-    current = head;
-    while (current != NULL) {
-        for (int i = 0; i < current->numNeighbors; i++) {
-            printf("%i->%i = %i\n", current->id, current->connectedTo[i], current->weights[i]);
-        }
-        current = current->next;
-    }
-
-    /*
-    Dijsktra's Algorithm
-    Initialization:
-    S = {u}
-    for all nodes v
-        if v adjacent to u {
-            D(v) = c(u,v)
-        else 
-            D(v) = ?
-    
-    Loop
-        find w not in S with the smallest D(w)
-        add w to S
-        update D(v) for all v adjacent to w and not in S:
-            D(v) = min{D(v), D(w) + c(w,v)}
-    until all nodes in S 
-    */
-    int *S = calloc(num_nodes, sizeof(int));
-    int *D = calloc(num_nodes, sizeof(int));
-    int num_S = 1; // for the source node
-    S[0] = source; // S={u}
-
-    printf("dj start\n");
-    current = getNode_nodeList(head, source);
-    printf("got source node\n");
-    if (current == NULL || current->id != source) {
-        printf("No source node found.\n");
-        free(S);
-        if (head != NULL) {
-            destroy_nodeList(head);
-        }
-        fclose(file);
-        return 0;
-    }
-    printf("we good 1\n");
-    /*
-    for all nodes v
-        if v adjacent to u {
-            D(v) = c(u,v)
-        else 
-            D(v) = ?
-
-    This is taken care of in our connectedTo and weights arrays
-    */
-    for (int i = 0; i < current->numNeighbors; i++) {
-        D[current->connectedTo[i]-1] = current->weights[i];
-    }
-    printf("set initial adjacent weights\n");
-    printf("\nD: ");
+    FILE *output = fopen("output.txt", "w");
     for (int i = 0; i < num_nodes; i++) {
-        printf("%d  ", D[i]);
-    }
-    printf("\n");
+        int *S = calloc(num_nodes, sizeof(int));
+        int *D = calloc(num_nodes, sizeof(int));
+        int *P = calloc(num_nodes, sizeof(int));
+        P[i] = i + 1;
+        dijkstra(head, i+1, num_nodes, S, D, P);
 
-    /*
-     Loop
-        find w not in S with the smallest D(w)
-        add w to S
-        update D(v) for all v adjacent to w and not in S:
-            D(v) = min{D(v), D(w) + c(w,v)}
-    until all nodes in S 
-    */
-    while (num_S < num_nodes) {
-        //printf("num_S=%i\n", num_S);
-        int minIndex = -1;
-        for (int i = 0; i < num_nodes; i++) {
-            if (in_S(S, num_nodes, i + 1) == 1) continue;
-
-            if (D[i] > 0 && minIndex == -1)
-                minIndex = i;
-            else if (D[i] > 0 && D[i] < D[minIndex])
-                minIndex = i;
-        }
-        //printf("Found closest node: %i-%d\n", minIndex + 1, D[minIndex]);
-        S[num_S++] = minIndex + 1;
-        current = getNode_nodeList(head, minIndex + 1);
-        //update
-        for (int i = 0; i < current->numNeighbors; i++) {
-            
-            if (in_S(S, num_nodes, current->connectedTo[i]) == 1) continue;
-            // not in S
-            //printf("old=%i, new=%i\n", D[current->connectedTo[i] - 1], D[(current->id) - 1] + current->weights[i]);
-            if (D[current->connectedTo[i] - 1] == 0) {
-                D[current->connectedTo[i] - 1] = D[(current->id) - 1] + current->weights[i];
+        fprintf(output, "Routing Table %i\n", i+1);
+        fprintf(output, "%20s%20s%20s\n", "Destination", "Next Hop", "Cost");
+        for (int j = 0; j < num_nodes; j++) {
+            printf("Dest=%i\n", j + 1);
+            if (i == j) continue;
+            int next = P[j];
+            printf("Predecessor of %i is %i\n", j + 1, next);
+            int cost = D[j];
+            if (next != i+1 && isAdjacent_nodeList(head, next, i+1) == 0) {
+                printf("%i not adj to %i\n", next, i + 1);
+                next = P[next - 1];
+                while (next != i+1 && isAdjacent_nodeList(head, next, i+1) == 0) {
+                    next = P[next - 1];
+                }
             }
             else {
-                D[current->connectedTo[i] - 1] = min(D[current->connectedTo[i] - 1], D[(current->id) - 1] + current->weights[i]);
+                printf("%i adj to %i\n", next, i + 1);
+                next = j + 1;
             }
-            printf("updating D[%i]=%i\n", current->connectedTo[i] - 1, D[current->connectedTo[i] - 1]);
+            fprintf(output, "%20i%20i%20i\n", j+1, next, cost);
         }
-
-        //D[minIndex] = 0;
+        free(S);
+        free(D);
+        free(P);
     }
 
-    printf("S: ");
-    for (int i = 0; i < num_nodes; i++) {
-        printf("%d  ", S[i]);
-    }
-    printf("\nD: ");
-    for (int i = 0; i < num_nodes; i++) {
-        printf("%d  ", D[i]);
-    }
-    printf("\n");
 
     destroy_nodeList(head);
+    fclose(output);
     fclose(file);
     return 0;
 }
