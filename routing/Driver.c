@@ -225,6 +225,7 @@ void dijkstra(struct linked_list *head, int source, int num_nodes, int *S, int *
 }
 
 int isAdjacent_nodeList(struct linked_list *head, int node, int target) {
+    if (node == target) return 1;
     struct linked_list *current = getNode_nodeList(head, node);
     for (int i = 0; i < current->numNeighbors; i++) {
         if (current->connectedTo[i] == target) {
@@ -278,9 +279,40 @@ int main(int argc, char* argv[])
             token = strtok(NULL, "$");
         }
     }
-    printf("Source: %i\tDest:%i\n", source, dest);
-
+    //printf("Source: %i\tDest:%i\n", source, dest);
     FILE *output = fopen("output.txt", "w");
+
+    int *S = calloc(num_nodes, sizeof(int));
+    int *D = calloc(num_nodes, sizeof(int));
+    int *P = calloc(num_nodes, sizeof(int));
+
+    int *path = calloc(num_nodes, sizeof(int));
+    int backtrack = num_nodes - 1;
+    int previous_hop = dest;
+
+    P[source-1] = source;
+    dijkstra(head, source, num_nodes, S, D, P);
+    fprintf(output, "-------------------------------------------------\n");
+    fprintf(output, "%i -> %i\n", source, dest);
+
+    while (backtrack > 0) {
+        previous_hop = P[previous_hop-1];
+        path[backtrack] = previous_hop;
+        if (path[backtrack] == source) break;
+        backtrack--;
+    }
+
+    for (int i = backtrack; i < num_nodes; i++) {
+        fprintf(output, "%i -> ", path[i]);
+    }
+    fprintf(output, "%i\n", dest);
+    fprintf(output, "Total Distance: %i\n", D[dest-1]);
+    fprintf(output, "-------------------------------------------------\n");
+
+    free(path);
+    free(S);
+    free(D);
+    free(P);
     for (int i = 0; i < num_nodes; i++) {
         int *S = calloc(num_nodes, sizeof(int));
         int *D = calloc(num_nodes, sizeof(int));
@@ -291,21 +323,21 @@ int main(int argc, char* argv[])
         fprintf(output, "Routing Table %i\n", i+1);
         fprintf(output, "%20s%20s%20s\n", "Destination", "Next Hop", "Cost");
         for (int j = 0; j < num_nodes; j++) {
-            printf("Dest=%i\n", j + 1);
+            //printf("S=%i, Dest=%i\n", i+1, j + 1);
             if (i == j) continue;
             int next = P[j];
-            printf("Predecessor of %i is %i\n", j + 1, next);
+            //printf("Predecessor of %i is %i\n", j + 1, next);
             int cost = D[j];
-            if (next != i+1 && isAdjacent_nodeList(head, next, i+1) == 0) {
-                printf("%i not adj to %i\n", next, i + 1);
-                next = P[next - 1];
-                while (next != i+1 && isAdjacent_nodeList(head, next, i+1) == 0) {
-                    next = P[next - 1];
-                }
+                // N=S
+            if (next == i + 1 || next == j+1) {
+                next = j + 1;
             }
             else {
-                printf("%i adj to %i\n", next, i + 1);
-                next = j + 1;
+                //printf("Traceback %i->%i.%s adjacent\n", j + 1, next, ((isAdjacent_nodeList(head, next, i+1)==0)?"not":""));
+                while (P[next-1] != i+1) {
+                    next = P[next - 1];
+                    //printf("\tenroute ->%i\n", next);
+                }
             }
             fprintf(output, "%20i%20i%20i\n", j+1, next, cost);
         }
@@ -320,17 +352,3 @@ int main(int argc, char* argv[])
     fclose(file);
     return 0;
 }
-
-
-
-
-/*
-for (int i = 0; i < current->numNeighbors; i++) {
-for (int j = 0; j < num_S; j++) {
-if (S[j] != current->connectedTo[i]) {
-S[num_S++] = current->connectedTo[i];
-D[current->connectedTo[i]] = 1;
-}
-}
-}
-*/
