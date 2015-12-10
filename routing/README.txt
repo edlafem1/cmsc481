@@ -3,11 +3,16 @@ CMSC 481
 Edward LaFemina <edlafem1@umbc.edu>
 
 
-This program is compilied with no additional flags or headers.
-gcc -o routing Driver.c
+This program is compilied as follows:
+gcc -std=c99 -o routing Driver.c
+
+To run:
+./routing input.txt
+
+or supply an appropriate filename for the input file. If no argument is given, it will default to "input.txt".
+The output will be in a file called "output.txt", NOT ON TERMINAL.
 
 
-To run, you must have a file named "input.txt" in the same directory as the executable.
 The format should be a list of lines such as the following:
 <a>$<b>$<cost>
 
